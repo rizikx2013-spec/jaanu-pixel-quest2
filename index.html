@@ -1,0 +1,427 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jaanu's Pixel Quest 💗</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #ffe6f0;
+  color: #633d58;
+  font-family: "Courier New", monospace;
+  text-align: center;
+  padding: 18px;
+}
+
+.card {
+  max-width: 720px;
+  margin: 15px auto;
+  background: #fff9fc;
+  border: 4px solid #e9a4c6;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 6px 6px 0 #d9a1c0;
+}
+
+h1 {
+  color: #d64f91;
+  font-size: clamp(23px, 5vw, 38px);
+}
+
+h2 {
+  color: #c34b8a;
+}
+
+button {
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 15px;
+  background: #ffb8d7;
+  color: #633d58;
+  border: 3px solid #c75e95;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 5px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #d9a1c0;
+}
+
+button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+#game {
+  display: none;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 15px auto;
+  border: 4px solid #8a5775;
+  border-radius: 8px;
+  background: #bcebb6;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: bold;
+}
+
+#message {
+  min-height: 30px;
+  color: #bd3e81;
+  font-weight: bold;
+  line-height: 1.6;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  justify-content: center;
+  gap: 5px;
+  margin: 12px;
+}
+
+.controls button {
+  min-height: 48px;
+  margin: 0;
+}
+
+.note, .letter {
+  background: #fff0f6;
+  border: 2px dashed #e39ac0;
+  border-radius: 12px;
+  padding: 15px;
+  margin: 12px 0;
+  line-height: 1.7;
+}
+
+.hidden {
+  display: none;
+}
+
+small {
+  display: block;
+  line-height: 1.7;
+  margin: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="intro">
+  <h1>💗 Jaanu's Pixel Quest 💗</h1>
+  <p>A tiny adventure made with a HUGE amount of love.</p>
+  <p>From your very own <b>Gulab Jamun 🍡</b></p>
+  <div style="font-size:55px">🌷 🧸 💌 🌸</div>
+  <p>Your mission:</p>
+  <p>Collect <b>10 hearts</b>, discover <b>3 secret letters</b>, and unlock your surprise!</p>
+  <button onclick="startGame()">START ADVENTURE ✨</button>
+</div>
+
+<div class="card" id="game">
+  <h1>🌸 Find the Love! 🌸</h1>
+
+  <div class="stats">
+    <span>💗 Hearts: <span id="hearts">0</span>/10</span>
+    <span>💌 Letters: <span id="letters">0</span>/3</span>
+  </div>
+
+  <canvas id="canvas" width="600" height="400"></canvas>
+
+  <p id="message">Use the arrows to explore the garden!</p>
+
+  <div class="controls">
+    <span></span>
+    <button onclick="move(0,-1)" aria-label="Move up">⬆️</button>
+    <span></span>
+    <button onclick="move(-1,0)" aria-label="Move left">⬅️</button>
+    <button onclick="move(0,1)" aria-label="Move down">⬇️</button>
+    <button onclick="move(1,0)" aria-label="Move right">➡️</button>
+  </div>
+
+  <small>Computer: use WASD or arrow keys.<br>
+  Phone: use the buttons above.</small>
+
+  <button onclick="toggleSound()" id="soundBtn">🔊 Sound ON</button>
+  <button onclick="restart()">↻ Restart</button>
+
+  <div id="quiz" class="hidden">
+    <h2>💕 A Little Love Quiz 💕</h2>
+    <p>What makes our friendship special?</p>
+    <button onclick="answer(0)">The way we listen to each other 💗</button>
+    <button onclick="answer(1)">Only fancy gifts 🎁</button>
+    <button onclick="answer(2)">Never talking 😂</button>
+    <p id="quizResult"></p>
+  </div>
+
+  <div id="ending" class="hidden">
+    <h2>💌 Your Secret Surprise 💌</h2>
+    <div class="letter">
+      <p>Dear Jaanu, 💗</p>
+      <p>
+        If I could give you one thing in this world,
+        it would be the ability to see yourself through
+        my eyes. Then you'd know how special you really are.
+      </p>
+      <p>
+        Thank you for being part of my life, for the laughs,
+        the memories, and all the little moments that mean
+        more than words can explain.
+      </p>
+      <p>
+        No matter how busy life gets, I hope we always find
+        reasons to laugh together and keep making memories.
+      </p>
+      <p>Forever your Gulab Jamun 🍡</p>
+      <p>Made with all my heart, just for you. 💗</p>
+    </div>
+    <button onclick="restart()">PLAY AGAIN 💖</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const TILE = 40;
+const COLS = 15;
+const ROWS = 10;
+
+let player, hearts, letters, collectedHearts, collectedLetters;
+let soundOn = true;
+let audioCtx = null;
+let quizDone = false;
+let gameOver = false;
+
+const notes = [
+  "💌 Secret note 1: You deserve all the happiness in the world!",
+  "💌 Secret note 2: Thank you for being YOU. Never change!",
+  "💌 Secret note 3: This little game is a reminder that you matter!"
+];
+
+function startGame() {
+  document.getElementById("intro").style.display = "none";
+  document.getElementById("game").style.display = "block";
+  restart();
+}
+
+function restart() {
+  player = { x: 7, y: 5 };
+  collectedHearts = 0;
+  collectedLetters = 0;
+  quizDone = false;
+  gameOver = false;
+
+  hearts = [
+    {x:2,y:2},{x:5,y:1},{x:11,y:2},{x:13,y:5},{x:3,y:7},
+    {x:7,y:8},{x:9,y:3},{x:1,y:5},{x:12,y:8},{x:5,y:5}
+  ];
+
+  letters = [
+    {x:1,y:1},{x:13,y:1},{x:11,y:7}
+  ];
+
+  document.getElementById("hearts").textContent = "0";
+  document.getElementById("letters").textContent = "0";
+  document.getElementById("message").textContent =
+    "Explore the garden and collect hearts and letters!";
+  document.getElementById("quiz").classList.add("hidden");
+  document.getElementById("ending").classList.add("hidden");
+  document.getElementById("quizResult").textContent = "";
+  draw();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Pixel garden
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      ctx.fillStyle = (x + y) % 2 ? "#b8e8a9" : "#c8f0b7";
+      ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+
+      if ((x*3 + y*7) % 11 === 0) {
+        ctx.fillStyle = "#77c979";
+        ctx.fillRect(x*TILE+8, y*TILE+9, 4, 4);
+        ctx.fillRect(x*TILE+24, y*TILE+27, 4, 4);
+      }
+    }
+  }
+
+  // Flowers
+  for (let i=0; i<18; i++) {
+    const x = (i*83+23)%COLS;
+    const y = (i*47+16)%ROWS;
+    ctx.fillStyle = "#f6a7d0";
+    ctx.fillRect(x*TILE+12, y*TILE+12, 8, 8);
+    ctx.fillStyle = "#ffe68a";
+    ctx.fillRect(x*TILE+14, y*TILE+14, 4, 4);
+  }
+
+  // Hearts
+  hearts.forEach(h => {
+    ctx.font = "25px serif";
+    ctx.fillText("💗", h.x*TILE+5, h.y*TILE+29);
+  });
+
+  // Secret letters
+  letters.forEach(l => {
+    ctx.font = "25px serif";
+    ctx.fillText("💌", l.x*TILE+5, l.y*TILE+29);
+  });
+
+  // Player
+  const px = player.x*TILE;
+  const py = player.y*TILE;
+
+  ctx.fillStyle = "#9b5cdd";
+  ctx.fillRect(px+10,py+13,20,20);
+  ctx.fillStyle = "#f5c9a9";
+  ctx.fillRect(px+12,py+3,16,16);
+  ctx.fillStyle = "#58374b";
+  ctx.fillRect(px+11,py+1,18,6);
+  ctx.fillRect(px+15,py+10,3,3);
+  ctx.fillRect(px+23,py+10,3,3);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(px+16,py+19,8,3);
+}
+
+function move(dx,dy) {
+  if (gameOver || document.getElementById("game").style.display === "none") return;
+
+  const nx = Math.max(0,Math.min(COLS-1,player.x+dx));
+  const ny = Math.max(0,Math.min(ROWS-1,player.y+dy));
+
+  player.x = nx;
+  player.y = ny;
+
+  let foundSomething = false;
+
+  for (let i=hearts.length-1; i>=0; i--) {
+    if (hearts[i].x===nx && hearts[i].y===ny) {
+      hearts.splice(i,1);
+      collectedHearts++;
+      document.getElementById("hearts").textContent = collectedHearts;
+      document.getElementById("message").textContent = "You found a heart! 💗";
+      playSound(660);
+      foundSomething = true;
+    }
+  }
+
+  for (let i=letters.length-1; i>=0; i--) {
+    if (letters[i].x===nx && letters[i].y===ny) {
+      document.getElementById("message").textContent = notes[collectedLetters];
+      letters.splice(i,1);
+      collectedLetters++;
+      document.getElementById("letters").textContent = collectedLetters;
+      playSound(880);
+      foundSomething = true;
+    }
+  }
+
+  if (!foundSomething) {
+    document.getElementById("message").textContent =
+      "Keep exploring, Gulab Jamun! 🍡";
+  }
+
+  draw();
+  checkProgress();
+}
+
+function checkProgress() {
+  if (collectedHearts >= 5 && !quizDone) {
+    document.getElementById("quiz").classList.remove("hidden");
+  }
+
+  if (collectedHearts === 10 && collectedLetters === 3 && quizDone) {
+    gameOver = true;
+    document.getElementById("ending").classList.remove("hidden");
+    document.getElementById("message").textContent =
+      "YOU DID IT! Every heart led you here! 💖";
+    playSound(990);
+  }
+}
+
+function answer(choice) {
+  const result = document.getElementById("quizResult");
+
+  if (choice === 0) {
+    result.textContent = "CORRECT! The little things mean everything. 💗";
+    quizDone = true;
+    playSound(880);
+  } else {
+    result.textContent = "Try again! Think about what makes a friendship special. 🥹";
+    return;
+  }
+
+  checkProgress();
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById("soundBtn").textContent =
+    soundOn ? "🔊 Sound ON" : "🔇 Sound OFF";
+}
+
+function playSound(freq) {
+  if (!soundOn) return;
+
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.08,audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime+0.2);
+  } catch(e) {}
+}
+
+document.addEventListener("keydown", function(e) {
+  const keys = {
+    ArrowUp:[0,-1], w:[0,-1], W:[0,-1],
+    ArrowDown:[0,1], s:[0,1], S:[0,1],
+    ArrowLeft:[-1,0], a:[-1,0], A:[-1,0],
+    ArrowRight:[1,0], d:[1,0], D:[1,0]
+  };
+
+  if (keys[e.key]) {
+    e.preventDefault();
+    move(keys[e.key][0],keys[e.key][1]);
+  }
+});
+
+draw();
+</script>
+
+</body>
+</html>
+
+
